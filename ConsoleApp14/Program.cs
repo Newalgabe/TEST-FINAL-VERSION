@@ -1,4 +1,4 @@
-﻿class Program
+class Program
 {
     static List<User> users = new List<User>();
     static List<Doctor> doctors = new List<Doctor>();
@@ -33,7 +33,6 @@
         public Doctor AttendingDoctor { get; set; }
         public List<Diagnosis> Diagnoses { get; set; } = new List<Diagnosis>();
         public List<Medication> Medications { get; set; } = new List<Medication>();
-        public List<PatientAssessment> Assessments { get; set; } = new List<PatientAssessment>();
     }
 
     class Doctor : Person
@@ -83,15 +82,6 @@
         public string Name { get; set; }
         public string Dosage { get; set; }
         public DateTime EndDate { get; set; }
-    }
-
-    class PatientAssessment
-    {
-        public Patient Patient { get; set; }
-        public DateTime AssessmentDate { get; set; }
-        public string AssessmentNotes { get; set; }
-        public int HeartRate { get; set; }
-        public int BloodPressure { get; set; }
     }
 
     static void Main(string[] args)
@@ -208,7 +198,7 @@
             Console.WriteLine("7. View Possible Diagnoses (Chief Doctor)");
             Console.WriteLine("8. Admin View All Patient Data");
             Console.WriteLine("9. Assign Doctor to Patient");
-            Console.WriteLine("0. Switch Account or Exit"); 
+            Console.WriteLine("0. Switch Account or Exit");
 
             string choice = Console.ReadLine();
 
@@ -246,8 +236,8 @@
                     break;
                 case "0":
                     Console.WriteLine("0. Switch Account or Exit:");
-                    Console.WriteLine("1. Switch Account"); 
-                    Console.WriteLine("2. Exit"); 
+                    Console.WriteLine("1. Switch Account");
+                    Console.WriteLine("2. Exit");
 
                     string switchOrExitChoice = Console.ReadLine();
                     switch (switchOrExitChoice)
@@ -289,7 +279,7 @@
             Console.WriteLine("2. Add Diagnosis");
             Console.WriteLine("3. Edit Patient Information");
             Console.WriteLine("4. Add Medication");
-            Console.WriteLine("0. Switch Account or Exit"); 
+            Console.WriteLine("0. Switch Account or Exit");
 
             string choice = Console.ReadLine();
 
@@ -309,7 +299,7 @@
                     break;
                 case "0":
                     Console.WriteLine("0. Switch Account or Exit:");
-                    Console.WriteLine("1. Switch Account"); 
+                    Console.WriteLine("1. Switch Account");
                     Console.WriteLine("2. Exit");
 
                     string switchOrExitChoice = Console.ReadLine();
@@ -389,7 +379,7 @@
                     break;
                 case "0":
                     Console.WriteLine("0. Switch Account or Exit:");
-                    Console.WriteLine("1. Switch Account"); 
+                    Console.WriteLine("1. Switch Account");
                     Console.WriteLine("2. Exit");
 
                     string switchOrExitChoice = Console.ReadLine();
@@ -751,107 +741,39 @@
 
     static void SaveData()
     {
-        using (StreamWriter writer = new StreamWriter("data.txt"))
+        try
         {
-            foreach (var user in users)
+            using (FileStream stream = new FileStream("data.dat", FileMode.Create))
             {
-                writer.WriteLine($"{user.Username},{user.Password},{user.Role}");
+                BinaryFormatter formatter = new BinaryFormatter();
+                formatter.Serialize(stream, users);
+                formatter.Serialize(stream, doctors);
+                formatter.Serialize(stream, patients);
             }
-
-            foreach (var doctor in doctors)
-            {
-                writer.WriteLine($"Doctor,{doctor.Name},{doctor.Specialty}");
-            }
-
-            foreach (var patient in patients)
-            {
-                writer.WriteLine($"Patient,{patient.Name},{patient.DateOfBirth},{patient.Gender},{patient.ContactInfo}");
-
-                foreach (var diagnosis in patient.Diagnoses)
-                {
-                    writer.WriteLine($"Diagnosis,{diagnosis.Name},{diagnosis.DiagnosingDoctor.Name},{diagnosis.DiagnosisTime}");
-                }
-
-                foreach (var medication in patient.Medications)
-                {
-                    writer.WriteLine($"Medication,{medication.Name},{medication.Dosage},{medication.EndDate}");
-                }
-            }
+            Console.WriteLine("Data saved successfully.");
         }
-
-        Console.WriteLine("Data saved successfully.");
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving data: {ex.Message}");
+        }
     }
-
-
 
     static void LoadData()
     {
-        if (File.Exists("data.txt"))
+        try
         {
-            using (StreamReader reader = new StreamReader("data.txt"))
+            using (FileStream stream = new FileStream("data.dat", FileMode.OpenOrCreate))
             {
-                string line;
-                while ((line = reader.ReadLine()) != null)
-                {
-                    string[] parts = line.Split(',');
-
-                    if (parts.Length > 0)
-                    {
-                        string type = parts[0];
-
-                        if (type == "Doctor" && parts.Length == 3)
-                        {
-                            var doctor = new Doctor
-                            {
-                                Name = parts[1],
-                                Specialty = parts[2]
-                            };
-                            doctors.Add(doctor);
-                        }
-                        else if (type == "Patient" && parts.Length == 5)
-                        {
-                            var patient = new Patient
-                            {
-                                Name = parts[1],
-                                DateOfBirth = DateTime.Parse(parts[2]),
-                                Gender = parts[3],
-                                ContactInfo = parts[4]
-                            };
-                            patients.Add(patient);
-                        }
-                        else if (type == "User" && parts.Length == 4)
-                        {
-                            var user = new User
-                            {
-                                Username = parts[1],
-                                Password = parts[2],
-                                Role = parts[3]
-                            };
-                            users.Add(user);
-                        }
-                        else if (type == "Diagnosis" && parts.Length == 4)
-                        {
-                            var diagnosis = new Diagnosis
-                            {
-                                Name = parts[1],
-                                DiagnosingDoctor = doctors.FirstOrDefault(d => d.Name == parts[2]),
-                                DiagnosisTime = DateTime.Parse(parts[3])
-                            };
-                            var patient = patients.OfType<Patient>().FirstOrDefault(p => p.Name == parts[1]);
-                            if (patient != null)
-                            {
-                                patient.Diagnoses.Add(diagnosis);
-                            }
-                        }
-                    }
-                }
-
-                Console.WriteLine("Data loaded successfully.");
+                BinaryFormatter formatter = new BinaryFormatter();
+                users = (List<User>)formatter.Deserialize(stream);
+                doctors = (List<Doctor>)formatter.Deserialize(stream);
+                patients = (List<Patient>)formatter.Deserialize(stream);
             }
+            Console.WriteLine("Data loaded successfully.");
         }
-        else
+        catch (Exception ex)
         {
-            Console.WriteLine("Data file not found. Starting with empty data.");
+            Console.WriteLine($"Error loading data: {ex.Message}");
         }
     }
 }
